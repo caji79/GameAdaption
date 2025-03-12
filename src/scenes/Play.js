@@ -57,6 +57,8 @@ class Play extends Phaser.Scene {
 
         // sound effect
         
+        // instruction
+        document.getElementById('description').innerHTML = '<p>A: Left</p><p>D: Right</p><p>W: Jump</p><p>K: Attack</p>'
 
     }
 
