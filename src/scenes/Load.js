@@ -12,7 +12,11 @@ class Load extends Phaser.Scene {
         
         this.load.image('bee', 'bee.png')
 
-        this.load.image('tilesetImage', 'gameRemakeTileset.png')
+        this.load.spritesheet('tilesetImage', 'gameRemakeTileset.png', {
+            frameWidth: 16,
+            frameHeight: 16
+        })
+        
         this.load.tilemapTiledJSON('tilemapJSON', 'gameWorld.json')
 
         this.load.audio('jump-sfx', 'jump.wav')

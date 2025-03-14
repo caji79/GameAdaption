@@ -30,6 +30,33 @@ class Play extends Phaser.Scene {
 
         // bee
         this.bee = this.physics.add.sprite(960, 224, 'bee')
+        this.bee.body.setSize(48, 48)
+        this.bee.body.setImmovable(true)
+
+        // lava pool
+        this.lavaTile = map.createFromObjects('Lava', {
+            name: 'lava',
+            frame: 33
+        })
+
+        // coins
+        this.coins = map.createFromObjects('Coins', {
+            name: 'coin',
+            frame: 22
+        })
+
+        // lava physics
+        this.physics.world.enable(this.lavaTile, 1)
+
+        this.lavaGroup = this.add.group(this.lavaTile)
+
+        // coins physics
+        this.physics.world.enable(this.coins, 1)
+        this.coins.map((coin) => {
+            coin.body.setSize(8, 8)
+        })
+        
+        this.coinsGroup = this.add.group(this.coins)
 
         // world physics
         this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
@@ -39,6 +66,15 @@ class Play extends Phaser.Scene {
         platformLayer.setCollisionByProperty({ collision: true})
         this.physics.add.collider(this.player, platformLayer)
         this.physics.add.collider(this.bee, platformLayer)
+
+        // lava-coin collision
+        this.physics.add.overlap(this.player, this.lavaGroup, () => {
+            this.playerDeath()
+        })
+
+        this.physics.add.overlap(this.player, this.coinsGroup, (obj1, obj2) => {
+            obj2.destroy()
+        })
 
         // player-enemy collision
         this.physics.add.collider(this.player, this.bee, this.playerDeath, null, this)
@@ -56,9 +92,17 @@ class Play extends Phaser.Scene {
         this.keyAttack = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K)
 
         // sound effect
-        
-        // instruction
-        document.getElementById('description').innerHTML = '<p>A: Left</p><p>D: Right</p><p>W: Jump</p><p>K: Attack</p>'
+        this.jumpSound = this.sound.add('jump-sfx')
+
+        // slope mechanics
+        this.slopeStartBox = this.physics.add.staticSprite(176, 144, null).setBodySize(4, 32)
+        this.slopeStartBox.setVisible(false)
+
+        this.slopeEndBox = this.physics.add.staticSprite(316, 224, null).setBodySize(4, 32)
+        this.slopeEndBox.setVisible(false)
+
+        this.downOverlap = this.physics.add.overlap(this.player, this.slopeStartBox, this.moveDown, null, this)
+        this.upOverlap = this.physics.add.overlap(this.player, this.slopeEndBox, this.moveUp, null, this)
 
     }
 
@@ -70,8 +114,12 @@ class Play extends Phaser.Scene {
          jumping animation will not be overwritten
         */
         if (!this.player.dead) {
-            if (!this.player.body.blocked.down) { 
-                this.player.anims.play('jump', true)      // play 'jump' during the jumping stage
+            if (!this.player.body.blocked.down) {
+                if (this.isOnSlope) {
+                    this.player.play('walk', true)
+                } else {
+                    this.player.anims.play('jump', true)      // play 'jump' during the jumping stage
+                }
             } else if (this.isAttacking) {
                 this.player.anims.play('attack', true)    // play 'attack' during the attacking stage
             } else {                                      // on ground stage: 'walk' and 'idle'
@@ -96,7 +144,7 @@ class Play extends Phaser.Scene {
         // single jump
         if (this.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(this.keyJump)) {
             this.player.body.setVelocityY(this.JUMP)
-            this.sound.play('jump-sfx')
+            this.jumpSound.play()
             // console.log('jumped')
         }
 
@@ -129,11 +177,56 @@ class Play extends Phaser.Scene {
     playerDeath() {
         this.player.dead = true
         this.physics.pause()
+        this.keyJump.enabled = false
+        this.keyAttack.enabled = false
+        this.isAttacking = false        // BUF FIXED
         this.player.play('death', true).once('animationcomplete', () => {
             this.player.destroy()
         })
         this.time.delayedCall(1500, () => {
             this.scene.restart()
+        })
+    }
+
+    moveDown(player, trigger) {
+        this.isOnSlope = true
+        player.body.moves = false
+        this.upOverlap.active = false
+        this.downOverlap.active = false
+        this.tweens.add({
+            targets: player,
+            x: player.x + 160,
+            y: player.y + 80,
+            duration: 1500,
+            ease: 'Linear',
+            onComplete: () => {
+                this.isOnSlope = false
+                player.body.moves = true
+                this.upOverlap.active = true
+                this.downOverlap.active = true
+                // console.log('down completed')
+            }
+        })
+    }
+
+    moveUp(player, trigger) {
+        this.isOnSlope = true
+        player.body.moves = false
+        this.upOverlap.active = false
+        this.downOverlap.active = false
+        this.tweens.add({
+            targets: player,
+            x: player.x - 160,
+            y: player.y - 80,
+            duration: 1500,
+            ease: 'Linear',
+            onComplete: () => {
+                this.isOnSlope = false
+                player.body.moves = true
+                this.upOverlap.active = true
+                this.downOverlap.active = true
+                // console.log('up completed')
+            }
         })
     }
 }
