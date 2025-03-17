@@ -5,13 +5,28 @@ class Load extends Phaser.Scene {
 
     preload() {
         this.load.path = "./assets/"
+
+        this.load.image('menuFrame1', 'menu1.png')
+        this.load.image('menuFrame2', 'menu2.png')
+        this.load.image('bee', 'bee.png')
+        this.load.image('bunny', 'bunny.png')
+
         this.load.spritesheet('greenMan', "greenMan_sheet.png", {
             frameWidth: 16,
             frameHeight: 32
         })
-        
-        this.load.image('bee', 'bee.png')
-
+        this.load.spritesheet('sun', 'sun.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        })
+        this.load.spritesheet('frog', 'frog.png', {
+            frameWidth: 48,
+            frameHeight: 32
+        })
+        this.load.spritesheet('points', 'points.png', {
+            frameWidth: 48,
+            frameHeight: 48
+        })
         this.load.spritesheet('tilesetImage', 'gameRemakeTileset.png', {
             frameWidth: 16,
             frameHeight: 16
@@ -72,7 +87,60 @@ class Load extends Phaser.Scene {
             })
         })
 
-        this.scene.start('playScene')
+        this.anims.create({
+            key: 'dance',
+            frameRate: 5,
+            repeat: 1,
+            frames: this.anims.generateFrameNames('greenMan', {
+                start: 46,
+                end: 48
+            })
+        })
+
+        // sun animation
+        this.anims.create({
+            key: 'shine',
+            frameRate: 5,
+            repeat: -1,
+            frames: this.anims.generateFrameNames('sun', {
+                start:0,
+                end: 1
+            })
+        })
+
+        // frog animation
+        this.anims.create({
+            key: 'tongue',
+            frameRate: 5,
+            frames: this.anims.generateFrameNames('frog', {
+                start:0,
+                end: 16
+            })
+        })
+
+        // bee points animation
+        this.anims.create({
+            key: 'scored500',
+            frameRate: 10,
+            repeat: 3,
+            frames: this.anims.generateFrameNames('points', {
+                start:0,
+                end: 2
+            })
+        })
+
+        // bunny points animation
+        this.anims.create({
+            key: 'scored800',
+            frameRate: 10,
+            repeat: 3,
+            frames: this.anims.generateFrameNames('points', {
+                start:3,
+                end: 5
+            })
+        })
+
+        this.scene.start('menuScene')
         // console.log('scene passed')
     }
 }
