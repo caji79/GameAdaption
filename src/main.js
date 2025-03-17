@@ -1,7 +1,7 @@
 'use strict'
 
 let config = {
-    type: Phaser.CANVAS,
+    type: Phaser.AUTO,
     width: 400,
     height: 320,
     render: {
@@ -10,10 +10,10 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            // debug: true
+            debug: true
         }
     },
-    scene: [ Load, Menu, Play ]
+    scene: [ Load, Menu, Instruction, Play, Win ]
 }
 
 let game = new Phaser.Game(config)
@@ -22,4 +22,6 @@ let width = game.config.width
 let height = game.config.height
 let centerX = game.config.width/2
 let centerY = game.config.height/2
+let oneTenthX = game.config.width/10
+let oneTenthY = game.config.height/10
 let cursors = null

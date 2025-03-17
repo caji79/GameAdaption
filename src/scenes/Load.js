@@ -6,6 +6,8 @@ class Load extends Phaser.Scene {
     preload() {
         this.load.path = "./assets/"
 
+        this.load.bitmapFont('pixel_font', 'font/pixel_type.png', 'font/pixel_type.xml')
+
         this.load.image('menuFrame1', 'menu1.png')
         this.load.image('menuFrame2', 'menu2.png')
         this.load.image('bee', 'bee.png')
@@ -111,7 +113,7 @@ class Load extends Phaser.Scene {
         // frog animation
         this.anims.create({
             key: 'tongue',
-            frameRate: 5,
+            frameRate: 10,
             frames: this.anims.generateFrameNames('frog', {
                 start:0,
                 end: 16

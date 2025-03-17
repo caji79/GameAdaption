@@ -16,7 +16,7 @@ class Menu extends Phaser.Scene {
         })
 
         this.input.keyboard.on('keydown', () => {
-            this.scene.start('playScene')
+            this.scene.start('instructionScene')
         })
     }
 }

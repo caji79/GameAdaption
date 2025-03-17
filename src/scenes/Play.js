@@ -49,6 +49,13 @@ class Play extends Phaser.Scene {
         this.bunny.body.setImmovable(true)
         this.bunny.isJumping = false
 
+        // frog
+        this.frog = this.physics.add.sprite(2320, 288, 'frog', 0)
+        this.frog.body.setSize(24, 20)
+        this.frog.body.setOffset(24, 12)
+        this.frog.body.setImmovable(true)
+        this.frog.isEating = false
+
         // lava pool
         this.lavaTile = map.createFromObjects('Lava', {
             name: 'lava',
@@ -83,6 +90,7 @@ class Play extends Phaser.Scene {
         this.physics.add.collider(this.player, platformLayer)
         this.physics.add.collider(this.bee, platformLayer)
         this.physics.add.collider(this.bunny, platformLayer)
+        this.physics.add.collider(this.frog, platformLayer)
 
         // lava-coin collision
         //lava
@@ -140,6 +148,7 @@ class Play extends Phaser.Scene {
         // player-enemy collision
         this.physics.add.collider(this.player, this.bee, this.playerDeath, null, this)
         this.physics.add.collider(this.player, this.bunny, this.playerDeath, null, this)
+        this.physics.add.collider(this.player, this.frog, this.playerDeath, null, this)
 
         // main camera
         this.cameras.main.setBounds(0, 0, map.widthInPixels, 400)
@@ -236,6 +245,7 @@ class Play extends Phaser.Scene {
             this.time.delayedCall(2000, () => {this.isAttacking = false})             // attacking state ends
         }
 
+        // monsters' actions
         // bee moving
         if (this.bee && this.bee.body) {
             let beeDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bee.x, this.bee.y)
@@ -244,7 +254,7 @@ class Play extends Phaser.Scene {
                 // moving forward
                 this.bee.setVelocityX(-200)
                 this.time.delayedCall(500, () => {
-                    if (this.bee && this.bee.body) {
+                    if (this.bee.body) {
                         this.bee.setVelocityX(0)
                         this.bee.setAccelerationX(0)
                         this.bee.setDragX(900)
@@ -264,7 +274,7 @@ class Play extends Phaser.Scene {
                 this.bunny.setDragX(900)
                 // jumping cooldown and reset
                 this.time.delayedCall(2000, () => {
-                    if (this.bunny && this.bunny.body) {
+                    if (this.bunny.body) {
                         this.bunny.isJumping = false
                         this.bunny.setVelocityX(0)
                         this.bunny.setAccelerationX(0)
@@ -272,11 +282,32 @@ class Play extends Phaser.Scene {
                 })
             }
         }
+        // frog eating
+        if (!this.frog.isEating) {
+            let frogDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.frog.x, this.frog.y)
+
+            if (frogDistance < 96) {
+                this.frog.isEating = true
+                // shooting tongue
+                this.frog.anims.play('tongue', true)
+                this.frog.on('animationupdate', (anim, frame) => {
+                    if (frame.index === 4) {
+                        this.tongueHitbox()
+                    }
+                })
+                this.time.delayedCall(2000, () => {
+                    if (this.frog.body) {
+                        this.frog.isEating = false
+                    }
+                })
+            }
+        }
 
     }
 
+    // for player
     attackHitbox() {
-        let hitBox = this.physics.add.sprite(this.player.x + (this.player.flipX ? -10 : 10), 
+        let hitBox = this.physics.add.staticSprite(this.player.x + (this.player.flipX ? -10 : 10), 
             this.player.y, 
             null
         ).setSize(15, 15).setOrigin(0.5, 0.5).setAlpha(0)
@@ -304,6 +335,25 @@ class Play extends Phaser.Scene {
             this.bunnyPoints.play('scored800').once('animationcomplete', () => {
                 this.bunnyPoints.destroy()
             })
+        })
+        // frog
+        this.physics.add.overlap(hitBox, this.frog, (hitBox, frog) => {
+            frog.destroy()
+            hitBox.destroy()
+            this.time.delayedCall(5000, () => {
+                this.scene.start('winScene')
+            })
+        })
+    }
+    // for frog only
+    tongueHitbox() {
+        let tongue = this.physics.add.staticSprite(this.frog.x - 12, this.frog.y + 4, null).setSize(24, 2).setOrigin(0.5, 0.5).setAlpha(0)
+        this.time.delayedCall(500, () => {
+            tongue.destroy()
+        })
+        this.physics.add.overlap(tongue, this.player, (tongue, player) => {
+            this.playerDeath()
+            tongue.destroy()
         })
     }
 
