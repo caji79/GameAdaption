@@ -1,12 +1,11 @@
-class Win extends Phaser.Scene {
+class GameOver extends Phaser.Scene {
     constructor() {
-        super('winScene')
+        super('gameoverScene')
     }
 
     create() {
-        this.add.bitmapText(centerX, centerY - 80, 'pixel_font', 'CONGRATS, HERO!', 24).setOrigin(0.5)
         this.add.bitmapText(centerX, centerY - 20, 'pixel_font', 'YOU', 32).setOrigin(0.5)
-        this.add.bitmapText(centerX, centerY + 20, 'pixel_font', 'WIN', 32).setOrigin(0.5)
+        this.add.bitmapText(centerX, centerY + 20, 'pixel_font', 'LOSE', 32).setOrigin(0.5)
         this.add.bitmapText(centerX, 25, 'pixel_font', `HIGH SCORE: ${highScore}`, 18).setOrigin(0.5)
 
         // restart text

@@ -13,7 +13,7 @@ let config = {
             debug: true
         }
     },
-    scene: [ Load, Menu, Instruction, Play, Win ]
+    scene: [ Load, Menu, Instruction, Play, Win, GameOver ]
 }
 
 let game = new Phaser.Game(config)
@@ -24,4 +24,4 @@ let centerX = game.config.width/2
 let centerY = game.config.height/2
 let oneTenthX = game.config.width/10
 let oneTenthY = game.config.height/10
-let cursors = null
+let highScore = 0

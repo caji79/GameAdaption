@@ -10,6 +10,8 @@ class Load extends Phaser.Scene {
 
         this.load.image('menuFrame1', 'menu1.png')
         this.load.image('menuFrame2', 'menu2.png')
+        this.load.image('UI_bar', 'UI_bar.png')
+        this.load.image('lifeIcon', 'life_icon.png')
         this.load.image('bee', 'bee.png')
         this.load.image('bunny', 'bunny.png')
 
@@ -113,7 +115,7 @@ class Load extends Phaser.Scene {
         // frog animation
         this.anims.create({
             key: 'tongue',
-            frameRate: 10,
+            frameRate: 15,
             frames: this.anims.generateFrameNames('frog', {
                 start:0,
                 end: 16

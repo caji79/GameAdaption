@@ -19,14 +19,14 @@ class Play extends Phaser.Scene {
         const platformLayer = map.createLayer('Platform', tilesetIMG, 0, 0)
 
         // spawn
-        const playerSpawn = map.findObject('Spawns', (obj) => obj.name === 'playerSpawn')
+        this.playerSpawn = map.findObject('Spawns', (obj) => obj.name === 'playerSpawn')
 
         // sun
         this.sun = this.add.sprite(80, 80, 'sun').setScale(2)
         this.sun.play('shine')
 
         // player sprite
-        this.player = this.physics.add.sprite(playerSpawn.x, playerSpawn.y, 'greenMan', 0)
+        this.player = this.physics.add.sprite(this.playerSpawn.x, this.playerSpawn.y, 'greenMan', 0)
         this.player.body.setCollideWorldBounds(true)
         this.player.body.setMaxVelocity(this.MAX_VELOCITY_X, this.MAX_VELOCITY_Y = 1000)
         this.player.dead = false
@@ -78,8 +78,23 @@ class Play extends Phaser.Scene {
         this.coins.map((coin) => {
             coin.body.setSize(8, 8)
         })
-        
         this.coinsGroup = this.add.group(this.coins)
+
+        // UI
+        this.uiBar = this.add.image(0, 0, 'UI_bar').setOrigin(0).setScrollFactor(0)
+        // life system
+        this.lives = 3    // track player lives
+        this.livesIcons = this.add.group()
+        for (let i = 0; i < this.lives; i++) {
+            let life = this.add.image(35 + i * 30, 25, 'lifeIcon').setScrollFactor(0).setScale(1.5)
+            this.livesIcons.add(life)
+        }
+        // score (see function 'attackHitbox')
+        this.score = 0
+        this.scoreText = this.add.bitmapText(centerX, 25, 'pixel_font', `0`, 20).setOrigin(0.5, 0.5).setScrollFactor(0)
+        this.bee.pointValue = 500
+        this.bunny.pointValue = 800
+        this.coinsGroup.pointValue = 100
 
         // world physics
         this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
@@ -95,12 +110,15 @@ class Play extends Phaser.Scene {
         // lava-coin collision
         //lava
         this.physics.add.overlap(this.player, this.lavaGroup, () => {
-            this.playerDeath()
+            if (!this.player.dead) {
+                this.playerDeath()
+            }
         })
         // coin
         this.physics.add.overlap(this.player, this.coinsGroup, (player, coin) => {
             let gotCoin = this.add.sprite(coin.x, coin.y, 'points', 6)
             coin.destroy()
+            this.updateScore(this.coinsGroup.pointValue)
             this.tweens.chain({
                 targets: gotCoin,
                 tweens: [
@@ -295,7 +313,7 @@ class Play extends Phaser.Scene {
                         this.tongueHitbox()
                     }
                 })
-                this.time.delayedCall(2000, () => {
+                this.time.delayedCall(750, () => {
                     if (this.frog.body) {
                         this.frog.isEating = false
                     }
@@ -320,7 +338,8 @@ class Play extends Phaser.Scene {
         this.physics.add.overlap(hitBox, this.bee, (hitBox, bee) => {
             bee.destroy()
             hitBox.destroy()
-            // bee points (500)
+            this.updateScore(bee.pointValue)
+            // bee points animation (500)
             this.beePoints = this.add.sprite(this.bee.x + 10, this.bee.y - 10, 'points').setScale(1.25)
             this.beePoints.play('scored500').once('animationcomplete', () => {
                 this.beePoints.destroy()
@@ -330,7 +349,8 @@ class Play extends Phaser.Scene {
         this.physics.add.overlap(hitBox, this.bunny, (hitBox, bunny) => {
             bunny.destroy()
             hitBox.destroy()
-            // bunny points (800)
+            this.updateScore(bunny.pointValue)
+            // bunny points animation (800)
             this.bunnyPoints = this.add.sprite(this.bunny.x + 10, this.bunny.y, 'points', 3).setScale(1.25)
             this.bunnyPoints.play('scored800').once('animationcomplete', () => {
                 this.bunnyPoints.destroy()
@@ -340,7 +360,7 @@ class Play extends Phaser.Scene {
         this.physics.add.overlap(hitBox, this.frog, (hitBox, frog) => {
             frog.destroy()
             hitBox.destroy()
-            this.time.delayedCall(5000, () => {
+            this.time.delayedCall(3000, () => {
                 this.scene.start('winScene')
             })
         })
@@ -348,27 +368,59 @@ class Play extends Phaser.Scene {
     // for frog only
     tongueHitbox() {
         let tongue = this.physics.add.staticSprite(this.frog.x - 12, this.frog.y + 4, null).setSize(24, 2).setOrigin(0.5, 0.5).setAlpha(0)
-        this.time.delayedCall(500, () => {
+        this.time.delayedCall(200, () => {
             tongue.destroy()
         })
         this.physics.add.overlap(tongue, this.player, (tongue, player) => {
-            this.playerDeath()
+            if (!this.player.dead) {
+                this.playerDeath()
+            }
             tongue.destroy()
         })
     }
 
     playerDeath() {
-        this.player.dead = true
-        this.physics.pause()
-        this.keyJump.enabled = false
-        this.keyAttack.enabled = false
-        this.isAttacking = false        // BUF FIXED
-        this.player.play('death', true).once('animationcomplete', () => {
-            this.player.destroy()
-        })
-        this.time.delayedCall(1500, () => {
-            this.scene.restart()
-        })
+        if (this.lives > 0) {
+            this.lives --
+            this.player.dead = true
+            let icons = this.livesIcons.getChildren()
+            // remove the last icon
+            if (icons.length > 0) {
+                icons[icons.length - 1].destroy()
+            }
+            this.physics.pause()
+            this.keyJump.enabled = false
+            this.keyAttack.enabled = false
+            this.isAttacking = false        // BUF FIXED
+            this.player.setVelocity(0)
+            this.player.setAcceleration(0)
+            this.score = 0      // reset score and highScore
+            highScore = 0
+            this.scoreText.setText(`${this.score}`) // update score
+            this.player.play('death', true)
+            this.time.delayedCall(1500, () => {
+                this.respawnPlayer()
+            })
+        } else {
+            this.scene.start('gameoverScene')
+        }
+    }
+
+    respawnPlayer() {
+        this.player.setPosition(this.playerSpawn.x, this.playerSpawn.y)
+        this.player.dead = false
+        this.keyJump.enabled = true
+        this.keyAttack.enabled = true
+        this.isAttacking = false
+        this.physics.resume()
+    }
+
+    updateScore(points) {
+        this.score += points
+        this.scoreText.setText(`${this.score}`) // update score
+        if (this.score > highScore) {
+            highScore = this.score 
+        }
     }
 
     moveDown1(player, trigger) {
