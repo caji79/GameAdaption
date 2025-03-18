@@ -21,6 +21,25 @@ class Play extends Phaser.Scene {
         // spawn
         this.playerSpawn = map.findObject('Spawns', (obj) => obj.name === 'playerSpawn')
 
+        // sound effect and background music
+        this.danceSound = this.sound.add('dance-sfx', {
+            volume: 0.1,
+            rate: 1.5,
+            loop: true
+        })
+        this.jumpSound = this.sound.add('jump-sfx')
+        this.walkSound = this.sound.add('walk-sfx', {
+            volume: 0.1,
+            rate: 2,
+            loop:true
+        })
+        this.kickSound = this.sound.add('kick-sfx')
+        this.scoreSound = this.sound.add('score-sfx')
+        this.bgm = this.sound.add('bgm', {
+            volume: 0.1,
+            loop: true
+        })
+
         // sun
         this.sun = this.add.sprite(80, 80, 'sun').setScale(2)
         this.sun.play('shine')
@@ -33,7 +52,10 @@ class Play extends Phaser.Scene {
 
         // dance animation at the beginning
         this.updateEnabled = false      // prevent 'idle animation' taking place in update method
+        this.danceSound.play()
         this.player.anims.play('dance').once('animationcomplete', () => {
+            this.danceSound.stop()
+            this.bgm.play()
             this.updateEnabled = true
         })
 
@@ -81,20 +103,29 @@ class Play extends Phaser.Scene {
         this.coinsGroup = this.add.group(this.coins)
 
         // UI
-        this.uiBar = this.add.image(0, 0, 'UI_bar').setOrigin(0).setScrollFactor(0)
+        this.uiBar = this.add.image(0, -50, 'UI_bar').setOrigin(0).setScrollFactor(0)
         // life system
         this.lives = 3    // track player lives
         this.livesIcons = this.add.group()
         for (let i = 0; i < this.lives; i++) {
-            let life = this.add.image(35 + i * 30, 25, 'lifeIcon').setScrollFactor(0).setScale(1.5)
+            let life = this.add.image(35 + i * 30, -25, 'lifeIcon').setScrollFactor(0).setScale(1.5)
             this.livesIcons.add(life)
         }
         // score (see function 'attackHitbox')
         this.score = 0
-        this.scoreText = this.add.bitmapText(centerX, 25, 'pixel_font', `0`, 20).setOrigin(0.5, 0.5).setScrollFactor(0)
+        this.scoreText = this.add.bitmapText(centerX, -25, 'pixel_font', `0`, 20).setOrigin(0.5, 0.5).setScrollFactor(0)
         this.bee.pointValue = 500
         this.bunny.pointValue = 800
         this.coinsGroup.pointValue = 100
+        // UI tweens
+        this.time.delayedCall(5500, () => {
+            this.tweens.add({
+                targets: [this.uiBar, this.scoreText, ...this.livesIcons.getChildren()],
+                y: '+=50',
+                duration: 800,
+                ease: 'Quad.easeOut'
+            })
+        })
 
         // world physics
         this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
@@ -116,6 +147,7 @@ class Play extends Phaser.Scene {
         })
         // coin
         this.physics.add.overlap(this.player, this.coinsGroup, (player, coin) => {
+            this.sound.play('coin-sfx')
             let gotCoin = this.add.sprite(coin.x, coin.y, 'points', 6)
             coin.destroy()
             this.updateScore(this.coinsGroup.pointValue)
@@ -180,9 +212,6 @@ class Play extends Phaser.Scene {
         this.keyJump = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W)
         this.keyAttack = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K)
 
-        // sound effect
-        this.jumpSound = this.sound.add('jump-sfx')
-
         // slope mechanics
         // 1st set
         this.slopeStartBox1 = this.physics.add.staticSprite(176, 144, null).setBodySize(4, 64)
@@ -224,26 +253,32 @@ class Play extends Phaser.Scene {
             if (!this.player.body.blocked.down) {
                 if (this.isOnSlope) {
                     this.player.play('walk', true)
+                    if (!this.walkSound.isPlaying) this.walkSound.play()
                 } else {
                     this.player.anims.play('jump', true)      // play 'jump' during the jumping stage
+                    this.walkSound.stop()
                 }
             } else if (this.isAttacking) {
                 this.player.anims.play('attack', true)    // play 'attack' during the attacking stage
+                this.walkSound.stop()
             } else {                                      // on ground stage: 'walk' and 'idle'
                 if (this.keyLeft.isDown) {
                     this.player.body.setAccelerationX(-this.ACCELERATION)
                     this.player.setFlip(true, false)
                     this.player.play('walk', true)
+                    if (!this.walkSound.isPlaying) this.walkSound.play();
                     // console.log('walk-left')
                 } else if (this.keyRight.isDown) {
                     this.player.body.setAccelerationX(this.ACCELERATION)
                     this.player.resetFlip()
                     this.player.play('walk', true)
+                    if (!this.walkSound.isPlaying) this.walkSound.play();
                     // console.log('walk-right')
                 } else {
                     this.player.play('idle')
                     this.player.body.setAccelerationX(0)
                     this.player.body.setDragX(this.DRAG)
+                    this.walkSound.stop()
                 }
             }
         }
@@ -257,6 +292,7 @@ class Play extends Phaser.Scene {
 
         // single attack
         if (Phaser.Input.Keyboard.JustDown(this.keyAttack) && !this.isAttacking) {
+            this.kickSound.play()
             this.isAttacking = true                                                   // attacking state starts
             this.player.body.setAccelerationX(0)                                      // prevent gliding
             this.time.delayedCall(200, () => {this.attackHitbox()})                   // create a hitbox in front of the player
@@ -341,6 +377,7 @@ class Play extends Phaser.Scene {
             this.updateScore(bee.pointValue)
             // bee points animation (500)
             this.beePoints = this.add.sprite(this.bee.x + 10, this.bee.y - 10, 'points').setScale(1.25)
+            this.scoreSound.play()
             this.beePoints.play('scored500').once('animationcomplete', () => {
                 this.beePoints.destroy()
             })
@@ -352,6 +389,7 @@ class Play extends Phaser.Scene {
             this.updateScore(bunny.pointValue)
             // bunny points animation (800)
             this.bunnyPoints = this.add.sprite(this.bunny.x + 10, this.bunny.y, 'points', 3).setScale(1.25)
+            this.scoreSound.play()
             this.bunnyPoints.play('scored800').once('animationcomplete', () => {
                 this.bunnyPoints.destroy()
             })
@@ -360,6 +398,8 @@ class Play extends Phaser.Scene {
         this.physics.add.overlap(hitBox, this.frog, (hitBox, frog) => {
             frog.destroy()
             hitBox.destroy()
+            this.scoreSound.play()
+            this.bgm.stop()
             this.time.delayedCall(3000, () => {
                 this.scene.start('winScene')
             })
@@ -380,6 +420,11 @@ class Play extends Phaser.Scene {
     }
 
     playerDeath() {
+        this.bgm.stop()
+        this.walkSound.stop()
+        this.physics.pause()
+        this.player.setVelocity(0)
+        this.player.setAcceleration(0)
         if (this.lives > 0) {
             this.lives --
             this.player.dead = true
@@ -388,31 +433,49 @@ class Play extends Phaser.Scene {
             if (icons.length > 0) {
                 icons[icons.length - 1].destroy()
             }
-            this.physics.pause()
             this.keyJump.enabled = false
             this.keyAttack.enabled = false
             this.isAttacking = false        // BUF FIXED
-            this.player.setVelocity(0)
-            this.player.setAcceleration(0)
             this.score = 0      // reset score and highScore
             highScore = 0
             this.scoreText.setText(`${this.score}`) // update score
             this.player.play('death', true)
             this.time.delayedCall(1500, () => {
-                this.respawnPlayer()
+                this.resetGame()
             })
         } else {
-            this.scene.start('gameoverScene')
+            this.updateEnabled = false;  // Fully disable update() logic
+            this.player.body.moves = false;  // Freeze physics body
+            this.player.anims.play('death', true);  // Play death animation
+            this.time.delayedCall(1500, () => {
+                this.scene.start('gameoverScene')
+            })
         }
     }
 
-    respawnPlayer() {
+    resetGame() {
         this.player.setPosition(this.playerSpawn.x, this.playerSpawn.y)
         this.player.dead = false
         this.keyJump.enabled = true
         this.keyAttack.enabled = true
         this.isAttacking = false
+        this.bee.setPosition(1024, 224)
+        this.bunny.setPosition(1616, 192)
         this.physics.resume()
+        this.bgm.play()
+        // send the UI back
+        this.uiBar.y = -50; 
+        this.livesIcons.getChildren().forEach(icon => icon.y = -25);
+        this.scoreText.y = -25;
+        // UI tweens
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({
+                targets: [this.uiBar, this.scoreText, ...this.livesIcons.getChildren()],
+                y: '+=50',
+                duration: 800,
+                ease: 'Quad.easeOut'
+            })
+        })
     }
 
     updateScore(points) {

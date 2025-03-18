@@ -39,7 +39,12 @@ class Load extends Phaser.Scene {
         this.load.tilemapTiledJSON('tilemapJSON', 'gameWorld.json')
 
         this.load.audio('jump-sfx', 'jump.wav')
-        this.load.audio('walk-sfx', 'walk.wav')
+        this.load.audio('dance-sfx', 'dance.mp3')
+        this.load.audio('walk-sfx', 'walk.mp3')
+        this.load.audio('kick-sfx', 'kick.wav')
+        this.load.audio('coin-sfx', 'pickupCoin.wav')
+        this.load.audio('score-sfx', 'score.wav')
+        this.load.audio('bgm', 'bgm.mp3')
     }
 
     create() {
@@ -93,8 +98,8 @@ class Load extends Phaser.Scene {
 
         this.anims.create({
             key: 'dance',
-            frameRate: 5,
-            repeat: 1,
+            frameRate: 7,
+            repeat: 5,
             frames: this.anims.generateFrameNames('greenMan', {
                 start: 46,
                 end: 48

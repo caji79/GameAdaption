@@ -250,7 +250,7 @@
 </data>
  </layer>
  <objectgroup id="5" name="Spawns" offsetx="-3.66667" offsety="-16">
-  <object id="2" name="playerSpawn" x="2222.67" y="306.667">
+  <object id="2" name="playerSpawn" x="96" y="160">
    <point/>
   </object>
  </objectgroup>
