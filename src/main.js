@@ -1,3 +1,7 @@
+/*
+
+*/
+
 'use strict'
 
 let config = {
@@ -13,7 +17,7 @@ let config = {
             // debug: true
         }
     },
-    scene: [ Load, Menu, Instruction, Play, Win, GameOver ]
+    scene: [ Load, Menu, Instruction, Play, Win, GameOver, Credits ]
 }
 
 let game = new Phaser.Game(config)

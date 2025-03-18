@@ -468,7 +468,7 @@ class Play extends Phaser.Scene {
         this.livesIcons.getChildren().forEach(icon => icon.y = -25);
         this.scoreText.y = -25;
         // UI tweens
-        this.time.delayedCall(3000, () => {
+        this.time.delayedCall(2000, () => {
             this.tweens.add({
                 targets: [this.uiBar, this.scoreText, ...this.livesIcons.getChildren()],
                 y: '+=50',
