@@ -1,5 +1,11 @@
 /*
-
+    Name: Eli Chen
+    Class: CMPM 120
+    Professor: Nathan Altice
+    Date: 3/17/2025
+    TECHNICAL EXECUTION:
+    Physics (Arcade), Cameras, Text object (Bitmap Text), Animation manager, Tween manager, Timers, Tilemaps
+    Credits/Sources: cite in the code
 */
 
 'use strict'

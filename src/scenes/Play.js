@@ -48,10 +48,10 @@ class Play extends Phaser.Scene {
         this.player = this.physics.add.sprite(this.playerSpawn.x, this.playerSpawn.y, 'greenMan', 0)
         this.player.body.setCollideWorldBounds(true)
         this.player.body.setMaxVelocity(this.MAX_VELOCITY_X, this.MAX_VELOCITY_Y = 1000)
-        this.player.dead = false
+        this.player.dead = false    // flag: track player death
 
         // dance animation at the beginning
-        this.updateEnabled = false      // prevent 'idle animation' taking place in update method
+        this.updateEnabled = false      // prevent 'idle animation' taking place in update method (see update)
         this.danceSound.play()
         this.player.anims.play('dance').once('animationcomplete', () => {
             this.danceSound.stop()
@@ -90,12 +90,12 @@ class Play extends Phaser.Scene {
             frame: 22
         })
 
-        // lava physics
-        this.physics.world.enable(this.lavaTile, 1)
-
+        // lava/coin physics
+        // https://docs.phaser.io/api-documentation/class/physics-arcade-world
+        // Mappy/src/Scenes/TiledPlatform.js from Nathan's repo
+        this.physics.world.enable(this.lavaTile, 1)    // 0 is DYNAMIC_BODY, 1 is STATIC_BODY
         this.lavaGroup = this.add.group(this.lavaTile)
-
-        // coins physics
+        
         this.physics.world.enable(this.coins, 1)
         this.coins.map((coin) => {
             coin.body.setSize(8, 8)
@@ -184,6 +184,7 @@ class Play extends Phaser.Scene {
             {x: 1240, y: 400}
         ]
         // box for falling death
+        // iterate over the position array to create each fall detector box (total 2)
         detectorPositions.forEach(pos => {
             let fallBox = this.fallDetectors.create(pos.x, pos.y, null)
             fallBox.setSize(48, 16)
@@ -203,8 +204,6 @@ class Play extends Phaser.Scene {
         // main camera
         this.cameras.main.setBounds(0, 0, map.widthInPixels, 400)
         this.cameras.main.startFollow(this.player, true, 0.5, 0.5, 0, 35)
-        // this.cameras.main.setFollowOffset(0, 35)
-        // this.cameras.main.setZoom(1.5)
 
         // key setting
         this.keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
@@ -213,6 +212,7 @@ class Play extends Phaser.Scene {
         this.keyAttack = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K)
 
         // slope mechanics
+        //directly force the player sprite to move along the slope by using tweens (see functions below the update)
         // 1st set
         this.slopeStartBox1 = this.physics.add.staticSprite(176, 144, null).setBodySize(4, 64)
         this.slopeStartBox1.setVisible(false)
@@ -242,7 +242,7 @@ class Play extends Phaser.Scene {
     }
 
     update() {
-        if (!this.updateEnabled) return
+        if (!this.updateEnabled) return    // exit update() immediately (line 54)
         /*
          "BUG FIXED": jumping-walking animation overwrite is fixed
          if the player is in the air, jump animation plays
@@ -251,14 +251,14 @@ class Play extends Phaser.Scene {
         */
         if (!this.player.dead) {
             if (!this.player.body.blocked.down) {
-                if (this.isOnSlope) {
-                    this.player.play('walk', true)
+                if (this.isOnSlope) {                    // the slope tileset is not collidable,
+                    this.player.play('walk', true)       // so make sure the walking is playing instead of jumping
                     if (!this.walkSound.isPlaying) this.walkSound.play()
                 } else {
-                    this.player.anims.play('jump', true)      // play 'jump' during the jumping stage
+                    this.player.anims.play('jump', true)      // play 'jump' during the jumping stage (!this.player.body.blocked.down)
                     this.walkSound.stop()
                 }
-            } else if (this.isAttacking) {
+            } else if (this.isAttacking) {                // flag: this.isAttacking (representing the attacking stage)
                 this.player.anims.play('attack', true)    // play 'attack' during the attacking stage
                 this.walkSound.stop()
             } else {                                      // on ground stage: 'walk' and 'idle'
@@ -290,18 +290,21 @@ class Play extends Phaser.Scene {
             // console.log('jumped')
         }
 
-        // single attack
+        // single attack (2s cooldown)
         if (Phaser.Input.Keyboard.JustDown(this.keyAttack) && !this.isAttacking) {
             this.kickSound.play()
-            this.isAttacking = true                                                   // attacking state starts
+            this.isAttacking = true                                                   // flag: attacking state starts
             this.player.body.setAccelerationX(0)                                      // prevent gliding
             this.time.delayedCall(200, () => {this.attackHitbox()})                   // create a hitbox in front of the player
             this.time.delayedCall(2000, () => {this.isAttacking = false})             // attacking state ends
         }
 
         // monsters' actions
-        // bee moving
-        if (this.bee && this.bee.body) {
+        // bee moving forward
+        if (this.bee.body) {
+            // check the distance between player and monster
+            // https://stackoverflow.com/questions/73676319/phaser3-matter-physics-calculate-distance-between-a-point-and-a-physics-shape
+            // https://photonstorm.github.io/phaser3-docs/Phaser.Math.Distance.html#:~:text=Between(x1%2C,sets%20of%20coordinates%20(points).
             let beeDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bee.x, this.bee.y)
 
             if (beeDistance < 256) {
@@ -317,11 +320,12 @@ class Play extends Phaser.Scene {
             }
         }
         // bunny jumping
+        // bunny jumps toward player only when the distance is close enough
         if (!this.bunny.isJumping) {
             let bunnyDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bunny.x, this.bunny.y)
 
             if (bunnyDistance < 128) {
-                this.bunny.isJumping = true
+                this.bunny.isJumping = true   // flag: prevent bunny continuously jumping while in the air
                 // jumping forward
                 this.bunny.setVelocityX(-200)
                 this.bunny.setVelocityY(-200)
@@ -337,18 +341,24 @@ class Play extends Phaser.Scene {
             }
         }
         // frog eating
+        // frog shoots out its tongue only when the distance is close enough
         if (!this.frog.isEating) {
             let frogDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.frog.x, this.frog.y)
 
             if (frogDistance < 96) {
                 this.frog.isEating = true
-                // shooting tongue
+                // shooting out tongue
                 this.frog.anims.play('tongue', true)
+                // set an animation event listener on the frog to catch specific frame of the current animation
+                // https://docs.phaser.io/api-documentation/event/animations-events
+                // https://phaser.discourse.group/t/on-frame-update-callback/2513
+                // similar example: https://phaser.io/examples/v3.55.0/animation/view/on-update-event
                 this.frog.on('animationupdate', (anim, frame) => {
-                    if (frame.index === 4) {
-                        this.tongueHitbox()
+                    if (frame.index === 4) {    // 4th frame (tongue out)
+                        this.tongueHitbox()     // create a hitbox for tongue
                     }
                 })
+                // cooldown
                 this.time.delayedCall(750, () => {
                     if (this.frog.body) {
                         this.frog.isEating = false
@@ -425,28 +435,31 @@ class Play extends Phaser.Scene {
         this.physics.pause()
         this.player.setVelocity(0)
         this.player.setAcceleration(0)
+        // health mechanics
         if (this.lives > 0) {
             this.lives --
             this.player.dead = true
             let icons = this.livesIcons.getChildren()
             // remove the last icon
+            // icons array [ icon1 (0), icon2 (1), icon3 (2) ]
             if (icons.length > 0) {
                 icons[icons.length - 1].destroy()
             }
             this.keyJump.enabled = false
             this.keyAttack.enabled = false
             this.isAttacking = false        // BUF FIXED
-            this.score = 0      // reset score and highScore
+            // reset score and highScore
+            this.score = 0
             highScore = 0
-            this.scoreText.setText(`${this.score}`) // update score
+            // update score on UI
+            this.scoreText.setText(`${this.score}`)
             this.player.play('death', true)
             this.time.delayedCall(1500, () => {
                 this.resetGame()
             })
         } else {
-            this.updateEnabled = false;  // Fully disable update() logic
-            this.player.body.moves = false;  // Freeze physics body
-            this.player.anims.play('death', true);  // Play death animation
+            this.updateEnabled = false    // exit update() immediately, prevent animation overwriting (see update)
+            this.player.anims.play('death', true)
             this.time.delayedCall(1500, () => {
                 this.scene.start('gameoverScene')
             })
@@ -459,6 +472,7 @@ class Play extends Phaser.Scene {
         this.keyJump.enabled = true
         this.keyAttack.enabled = true
         this.isAttacking = false
+        // send the monsters back
         this.bee.setPosition(1024, 224)
         this.bunny.setPosition(1616, 192)
         this.physics.resume()
@@ -467,7 +481,7 @@ class Play extends Phaser.Scene {
         this.uiBar.y = -50; 
         this.livesIcons.getChildren().forEach(icon => icon.y = -25);
         this.scoreText.y = -25;
-        // UI tweens
+        // UI tweens 
         this.time.delayedCall(2000, () => {
             this.tweens.add({
                 targets: [this.uiBar, this.scoreText, ...this.livesIcons.getChildren()],

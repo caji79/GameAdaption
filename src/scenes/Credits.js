@@ -16,7 +16,8 @@ class Credits extends Phaser.Scene {
         this.add.bitmapText(oneTenthX - 20, oneTenthY*8, 'pixel_font', 'Made for:', 12)
         this.add.bitmapText(oneTenthX - 20, oneTenthY*8+25, 'pixel_font', 'Nathan Altice, CMPM120, UCSC, 2025', 10)
         this.add.bitmapText(oneTenthX*9-10, oneTenthY*9+10, 'pixel_font', 'BACK (B)', 12).setOrigin(0.5)
-
+        
+        // using data method
         this.previousScene = data.prevScene || null
         this.input.keyboard.once('keydown-B', () => {
             if (this.previousScene) {
